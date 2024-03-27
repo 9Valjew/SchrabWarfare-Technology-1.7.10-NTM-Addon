@@ -239,92 +239,55 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		this.targetY = b;
 		this.targetZ = c;
 	}
-	
+
 	@Override
-    public void onUpdate() {
-		
-		//1.Position
-        positionvectorCruise = Math.sqrt(((this.posX - startX)*(this.posX - startX)) + ((this.posY - startY)*(this.posY - startY)) + ((this.posZ - startZ)*(this.posZ - startZ)));
-		
-		//2. Geschwindigkeiten
-		if(velocity < 1)
-			velocity = 1;
-		if(this.ticksExisted > 40)
-			velocity = 3;
-		else if(this.ticksExisted > 20)
-			velocity = 2;
-		if(this.positionvectorCruise > this.startsonicspeed && isSubsonic && !this.worldObj.isRemote)
-	    	velocity = 3;
+	public void onUpdate() {
+		// Calculate the distance to the target
+		double distanceToTarget = Math.sqrt(Math.pow(targetX - posX, 2) + Math.pow(targetZ - posZ, 2));
 
-		
-        this.dataWatcher.updateObject(8, Integer.valueOf(this.health));
-        
-        this.prevPosX = this.posX;
-        this.prevPosY = this.posY;
-        this.prevPosZ = this.posZ;
-		
-        //TODO: instead of crappy skipping, implement a hitscan
-		for(int i = 0; i < velocity; i++) {
-	        //this.posX += this.motionX;
-	        //this.posY += this.motionY;
-	        //this.posZ += this.motionZ;
-		
-			//this.setLocationAndAngles(posX + (this.motionX*1.0033) * velocity, posY + this.motionY * velocity, posZ + (this.motionZ*0.9952) * velocity, 0, 0);   
-		    this.setLocationAndAngles(posX + this.motionX * velocity, posY + this.motionY * velocity, posZ + this.motionZ * velocity, 0, 0);
-			
-		    
-		    this.rotation();
-	        
-	        this.motionY -= decelY * velocity;
-	        
-	        Vec3 vector = Vec3.createVectorHelper(targetX - startX, targetY - startY , targetZ - startZ);
-	        vector = vector.normalize();
-	        vector.xCoord *= accelXZ * velocity;
-			vector.zCoord *= accelXZ * velocity;
-			
-			
-	        if(motionY > 0) {
-	        	motionX += vector.xCoord;
-	        	motionZ += vector.zCoord; 
-	        }
-	        
-	        if(motionY < 0) {
-	        	motionX -= vector.xCoord;
-	        	motionZ -= vector.zCoord;
-	        }
-	        
-	        //3. Bedingungen für Transformation
-	        if(this.positionvectorCruise < this.transformationpointvector && this.dataWatcher.getWatchableObjectInt(9) == 1 && !this.worldObj.isRemote) {//this.ticksExisted > 5
-	            this.spawnExhaust(posX - vector.xCoord * i, (posY+1) - vector.yCoord * i, posZ - vector.zCoord * i);
-	        }
-	        
-	        if(this.positionvectorCruise > this.transformationpointvector && this.dataWatcher.getWatchableObjectInt(9) == 1 && !this.worldObj.isRemote) {//this.ticksExisted > 205
-	        	this.MissileToCruiseMissile();
-	        }
-	        
-	        new TargetPoint(worldObj.provider.dimensionId, posX, posY, posZ, 300); //300
-	       
-	        if(this.worldObj.getBlock((int)this.posX, (int)this.posY, (int)this.posZ) != Blocks.air && 
-        			this.worldObj.getBlock((int)this.posX, (int)this.posY, (int)this.posZ) != Blocks.water && 
-        			this.worldObj.getBlock((int)this.posX, (int)this.posY, (int)this.posZ) != Blocks.flowing_water) {
-	        	
-	        
-        	    if(!this.worldObj.isRemote)
-    			{
-    				onImpact();
-    			}
-    			this.setDead();          
-    			return;
-	        }
-
-			if(this.isCluster = true){
-				BombletSplit();
-			}
-    			
-	        loadNeighboringChunks((int)(posX / 16), (int)(posZ / 16));
-
-	        }
+		// 1. Climb to Y = 270 slowly
+		if (posY < 270) {
+			motionY = 0.5;
 		}
+		// 2. Move to the target coordinates (U, 270, O) at a velocity of 3
+		else if (distanceToTarget > 50) {
+			motionY = 0;
+			posY = 270;
+			Vec3 vector = Vec3.createVectorHelper(targetX - posX, 0, targetZ - posZ);
+			vector = vector.normalize();
+			vector.xCoord *= 3;
+			vector.zCoord *= 3;
+			motionX += vector.xCoord;
+			motionZ += vector.zCoord;
+		}
+		// 3. Dive to the original coordinates at a velocity of 3
+		else {
+			Vec3 vector = Vec3.createVectorHelper(targetX - posX, targetY - posY, targetZ - posZ);
+			vector = vector.normalize();
+			vector.xCoord *= 3;
+			vector.yCoord *= 3;
+			vector.zCoord *= 3;
+			motionX += vector.xCoord;
+			motionY += vector.yCoord;
+			motionZ += vector.zCoord;
+		}
+
+		// Update the position of the missile
+		posX += motionX;
+		posY += motionY;
+		posZ += motionZ;
+
+		// Check if the missile has hit the target or a block
+		if (this.worldObj.getBlock((int) this.posX, (int) this.posY, (int) this.posZ) != Blocks.air &&
+				this.worldObj.getBlock((int) this.posX, (int) this.posY, (int) this.posZ) != Blocks.water &&
+				this.worldObj.getBlock((int) this.posX, (int) this.posY, (int) this.posZ) != Blocks.flowing_water) {
+
+			if (!this.worldObj.isRemote) {
+				onImpact();
+			}
+			this.setDead();
+		}
+	}
 
 	public void BombletSplit() {
 		if (motionY <= 0) {
