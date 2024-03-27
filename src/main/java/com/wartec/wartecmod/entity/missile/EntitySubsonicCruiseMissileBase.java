@@ -45,7 +45,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
     private Ticket loaderTicket;
     public int health = 10;
     protected TileEntityVlsExhaust exhaust = null;
-    
+	boolean hasReachedMaxHeight = false;
+
 
 	public EntitySubsonicCruiseMissileBase(World p_i1582_1_) {
 		super(p_i1582_1_);
@@ -240,36 +241,35 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		this.targetZ = c;
 	}
 
+
 	@Override
 	public void onUpdate() {
 		// Calculate the distance to the target
 		double distanceToTarget = Math.sqrt(Math.pow(targetX - posX, 2) + Math.pow(targetZ - posZ, 2));
 
-		// 1. Climb to Y = 270 slowly
-		if (posY < 270) {
-			motionY = 0.5;
+		// 1. Climb to Y = 270 fast
+		if (posY < 270 && !hasReachedMaxHeight) {
+			motionY = 3;
+			if (posY >= 270) {
+				hasReachedMaxHeight = true;
+			}
 		}
-		// 2. Move to the target coordinates (U, 270, O) at a velocity of 3
+		// 2. Move to the target coordinates (U, 270, O) at a velocity of 1
 		else if (distanceToTarget > 50) {
 			motionY = 0;
 			posY = 270;
 			Vec3 vector = Vec3.createVectorHelper(targetX - posX, 0, targetZ - posZ);
 			vector = vector.normalize();
-			vector.xCoord *= 3;
-			vector.zCoord *= 3;
-			motionX += vector.xCoord;
-			motionZ += vector.zCoord;
+			vector.xCoord *= 1;
+			vector.zCoord *= 1;
+			motionX = vector.xCoord;
+			motionZ = vector.zCoord;
 		}
-		// 3. Dive to the original coordinates at a velocity of 3
-		else {
-			Vec3 vector = Vec3.createVectorHelper(targetX - posX, targetY - posY, targetZ - posZ);
-			vector = vector.normalize();
-			vector.xCoord *= 3;
-			vector.yCoord *= 3;
-			vector.zCoord *= 3;
-			motionX += vector.xCoord;
-			motionY += vector.yCoord;
-			motionZ += vector.zCoord;
+		// 3. Slowly descend to the ground level until Y=60
+		else if (posY > 60) {
+			motionY = -0.5;
+		} else {
+			motionY = 0;
 		}
 
 		// Update the position of the missile
