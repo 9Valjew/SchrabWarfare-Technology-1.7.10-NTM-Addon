@@ -250,7 +250,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 	@Override
 	public void onUpdate() {
-
+		loadNeighboringChunks((int) Math.floor(posX / 16), (int) Math.floor(posZ / 16));
 		if(isFirst)
 		{
 			String message = String.format("%s has launched from the coordinates (%d, %d, %d)",uuid, (int) this.posX, (int) this.posY, (int) this.posZ);
@@ -423,9 +423,6 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 	List<ChunkCoordIntPair> loadedChunks = new ArrayList<ChunkCoordIntPair>();
 
-	public void loadNeighboringChunks(int newChunkX, int newChunkZ) {
-
-	}
 
 
 	private void MissileToCruiseMissile() {
@@ -438,21 +435,29 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		double dz = targetZ - posZ;
 		return Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}
-	public void loadChunksAroundMissile() {
-		int chunkX = (int) this.posX >> 4;
-		int chunkZ = (int) this.posZ >> 4;
-		for (int x = chunkX - 3; x <= chunkX + 3; x++) {
-			for (int z = chunkZ - 3; z <= chunkZ + 3; z++) {
-				ForgeChunkManager.forceChunk(this.loaderTicket, new ChunkCoordIntPair(x, z));
+
+	public void loadNeighboringChunks(int newChunkX, int newChunkZ) {
+		if(!worldObj.isRemote && loaderTicket != null) {
+			clearChunkLoader();
+			loadedChunks.clear();
+			loadedChunks.add(new ChunkCoordIntPair(newChunkX, newChunkZ));
+			for(ChunkCoordIntPair chunk : loadedChunks) {
+				ForgeChunkManager.forceChunk(loaderTicket, chunk);
 			}
 		}
 	}
-	public void onKillCommand() {
-		// Release the chunks
-		if (this.loaderTicket != null) {
-			ForgeChunkManager.releaseTicket(this.loaderTicket);
-			this.loaderTicket = null;
+
+	public void clearChunkLoader() {
+		if(!worldObj.isRemote && loaderTicket != null) {
+			for(ChunkCoordIntPair chunk : loadedChunks) {
+				ForgeChunkManager.unforceChunk(loaderTicket, chunk);
+			}
 		}
+	}
+	@Override
+	public void setDead() {
+		super.setDead();
+		this.clearChunkLoader();
 	}
 
 
