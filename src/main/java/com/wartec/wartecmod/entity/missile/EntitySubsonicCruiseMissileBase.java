@@ -26,6 +26,7 @@ import net.minecraftforge.common.ForgeChunkManager.Type;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public abstract class EntitySubsonicCruiseMissileBase extends Entity implements IChunkLoader, IRadarDetectable {
 
@@ -50,6 +51,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	public int health = 10;
 	protected TileEntityVlsExhaust exhaust = null;
 	boolean isFirst = true;
+	UUID uuid = UUID.randomUUID();
 
 
 	public EntitySubsonicCruiseMissileBase(World p_i1582_1_) {
@@ -116,6 +118,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 
 		Range = (Math.sqrt(((targetX - startX)*(targetX - startX)) + ((targetY - startY)*(targetY - startY)) + ((targetZ - startZ)*(targetZ - startZ))));
+		Range = Range*10;
 
 		transformationpointvector = (Math.sqrt(((targetX - startX)*(targetX - startX)) + ((targetY - startY)*(targetY - startY)) + ((targetZ - startZ)*(targetZ - startZ))))*0.15;
 
@@ -250,11 +253,11 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 		if(isFirst)
 		{
-			String message = String.format("A missile has launched from the coordinates (%d, %d, %d)", (int) this.posX, (int) this.posY, (int) this.posZ);
+			String message = String.format("%s has launched from the coordinates (%d, %d, %d)",uuid, (int) this.posX, (int) this.posY, (int) this.posZ);
 			MinecraftServer.getServer().getConfigurationManager().sendChatMsg(new ChatComponentText(message));
 			isFirst = false;
 		}
-		if(this.isHigh == false)
+		if(!this.isHigh)
 		{
 			this.setLocationAndAngles(posX, posY + 0.5, posZ, 0, 0);
 			rotation();
@@ -264,7 +267,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 				startX = (int) posX;
 				startY = (int) posY;
 				startZ = (int) posZ;
-				Vec3 vector = Vec3.createVectorHelper(targetX - startX, targetY - startY, targetZ - startZ);
+				Vec3 vector = Vec3.createVectorHelper(targetX - startX,0, targetZ - startZ);
 				accelXZ = decelY = 1/vector.lengthVector();
 				decelY *= 0.25;
 				motionY = 0;
@@ -299,7 +302,9 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 			//this.posZ += this.motionZ;
 
 			//this.setLocationAndAngles(posX + (this.motionX*1.0033) * velocity, posY + this.motionY * velocity, posZ + (this.motionZ*0.9952) * velocity, 0, 0);
-			this.setLocationAndAngles(posX + this.motionX * velocity, posY + this.motionY * velocity, posZ + this.motionZ * velocity, 0, 0);
+
+			if(getDistanceToTarget() < 250){this.setLocationAndAngles(posX + this.motionX * velocity, posY + this.motionY * velocity*3, posZ + this.motionZ * velocity, 0, 0);}
+			else{this.setLocationAndAngles(posX + this.motionX * velocity, posY, posZ + this.motionZ * velocity, 0, 0);}
 			rotation();
 
 
@@ -340,7 +345,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 				if(!this.worldObj.isRemote)
 				{
-					String message = String.format("A missile has landed at coordinates (%d, %d, %d)", (int) this.posX, (int) this.posY, (int) this.posZ);
+					String message = String.format("%s has landed at coordinates (%d, %d, %d)",uuid, (int) this.posX, (int) this.posY, (int) this.posZ);
 					MinecraftServer.getServer().getConfigurationManager().sendChatMsg(new ChatComponentText(message));
 					onImpact();
 				}
@@ -351,8 +356,6 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 			if(this.isCluster == true){
 				BombletSplit();
 			}
-
-			loadNeighboringChunks((int)(posX / 16), (int)(posZ / 16));
 
 		}
 	}
@@ -429,5 +432,29 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		ExplosionLarge.spawnParticles(worldObj, posX, posY, posZ, 7);
 		this.dataWatcher.updateObject(9, 2);
 	}
+	public double getDistanceToTarget() {
+		double dx = targetX - posX;
+		double dy = targetY - posY;
+		double dz = targetZ - posZ;
+		return Math.sqrt(dx * dx + dy * dy + dz * dz);
+	}
+	public void loadChunksAroundMissile() {
+		int chunkX = (int) this.posX >> 4;
+		int chunkZ = (int) this.posZ >> 4;
+		for (int x = chunkX - 3; x <= chunkX + 3; x++) {
+			for (int z = chunkZ - 3; z <= chunkZ + 3; z++) {
+				ForgeChunkManager.forceChunk(this.loaderTicket, new ChunkCoordIntPair(x, z));
+			}
+		}
+	}
+	public void onKillCommand() {
+		// Release the chunks
+		if (this.loaderTicket != null) {
+			ForgeChunkManager.releaseTicket(this.loaderTicket);
+			this.loaderTicket = null;
+		}
+	}
+
 
 }
+
