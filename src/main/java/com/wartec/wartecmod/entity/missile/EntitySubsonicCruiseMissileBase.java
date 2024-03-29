@@ -13,6 +13,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
@@ -34,6 +36,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	int targetY;
 	int targetZ;
 	int velocity;
+	int afterHighCounter;
 	double positionvectorCruise;
 	double transformationpointvector;
 	double startsonicspeed;
@@ -42,9 +45,11 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	double accelXZ;
 	boolean isSubsonic = false;
 	boolean isCluster = false;
+	Boolean isHigh = false;
 	private Ticket loaderTicket;
 	public int health = 10;
 	protected TileEntityVlsExhaust exhaust = null;
+	boolean isFirst = true;
 
 
 	public EntitySubsonicCruiseMissileBase(World p_i1582_1_) {
@@ -243,15 +248,39 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	@Override
 	public void onUpdate() {
 
+		if(isFirst)
+		{
+			String message = String.format("A missile has launched from the coordinates (%d, %d, %d)", (int) this.posX, (int) this.posY, (int) this.posZ);
+			MinecraftServer.getServer().getConfigurationManager().sendChatMsg(new ChatComponentText(message));
+			isFirst = false;
+		}
+		if(this.isHigh == false)
+		{
+			this.setLocationAndAngles(posX, posY + 0.5, posZ, 0, 0);
+			rotation();
+			if(this.posY > 150)
+			{
+				isHigh = true;
+				startX = (int) posX;
+				startY = (int) posY;
+				startZ = (int) posZ;
+				Vec3 vector = Vec3.createVectorHelper(targetX - startX, targetY - startY, targetZ - startZ);
+				accelXZ = decelY = 1/vector.lengthVector();
+				decelY *= 0.25;
+				motionY = 0;
+			}
+			return;
+		}
 		//1.Position
-		positionvectorCruise = Math.sqrt(((this.posX - startX)*(this.posX - startX)) + ((this.posY - startY)*(this.posY - startY)) + ((this.posZ - startZ)*(this.posZ - startZ)));
 
+		positionvectorCruise = Math.sqrt(((this.posX - startX)*(this.posX - startX)) + ((this.posY - startY)*(this.posY - startY)) + ((this.posZ - startZ)*(this.posZ - startZ)));
+		afterHighCounter++;
 		//2. Geschwindigkeiten
 		if(velocity < 1)
 			velocity = 1;
-		if(this.ticksExisted > 40)
+		if(this.afterHighCounter > 40)
 			velocity = 3;
-		else if(this.ticksExisted > 20)
+		else if(this.afterHighCounter > 20)
 			velocity = 2;
 		if(this.positionvectorCruise > this.startsonicspeed && isSubsonic && !this.worldObj.isRemote)
 			velocity = 3;
@@ -271,16 +300,16 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 			//this.setLocationAndAngles(posX + (this.motionX*1.0033) * velocity, posY + this.motionY * velocity, posZ + (this.motionZ*0.9952) * velocity, 0, 0);
 			this.setLocationAndAngles(posX + this.motionX * velocity, posY + this.motionY * velocity, posZ + this.motionZ * velocity, 0, 0);
+			rotation();
 
-
-			this.rotation();
 
 			this.motionY -= decelY * velocity;
 
-			Vec3 vector = Vec3.createVectorHelper(targetX - startX, targetY - startY , targetZ - startZ);
+			Vec3 vector = Vec3.createVectorHelper(targetX - posX, targetY - posY , targetZ - posZ);
 			vector = vector.normalize();
-			vector.xCoord *= accelXZ * velocity;
-			vector.zCoord *= accelXZ * velocity;
+			vector.xCoord *= accelXZ * velocity*-1;
+			vector.zCoord *= accelXZ * velocity*-1;
+			rotation();
 
 
 			if(motionY > 0) {
@@ -311,6 +340,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 				if(!this.worldObj.isRemote)
 				{
+					String message = String.format("A missile has landed at coordinates (%d, %d, %d)", (int) this.posX, (int) this.posY, (int) this.posZ);
+					MinecraftServer.getServer().getConfigurationManager().sendChatMsg(new ChatComponentText(message));
 					onImpact();
 				}
 				this.setDead();
