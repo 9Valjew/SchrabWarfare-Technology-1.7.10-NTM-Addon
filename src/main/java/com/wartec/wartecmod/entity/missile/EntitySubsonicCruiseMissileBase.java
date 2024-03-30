@@ -266,6 +266,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		if(!this.isHigh)
 		{
 			this.setLocationAndAngles(posX, posY + 0.5, posZ, 0, 0);
+			this.spawnExhaust(posX,posY-3,posZ);
+
 			rotation();
 			if(this.posY > 150)
 			{
@@ -285,6 +287,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		positionvectorCruise = Math.sqrt(((this.posX - startX)*(this.posX - startX)) + ((this.posY - startY)*(this.posY - startY)) + ((this.posZ - startZ)*(this.posZ - startZ)));
 		afterHighCounter++;
 		//2. Geschwindigkeiten
+		/*
 		if(velocity < 1)
 			velocity = 1;
 		if(this.afterHighCounter > 40)
@@ -292,7 +295,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		else if(this.afterHighCounter > 20)
 			velocity = 2;
 		if(this.positionvectorCruise > this.startsonicspeed && isSubsonic && !this.worldObj.isRemote)
-			velocity = 3;
+			velocity = 3;*/
+		velocity = 2;
 
 
 		this.dataWatcher.updateObject(8, Integer.valueOf(this.health));
@@ -365,8 +369,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 			}
 
 		}
-		int nextChunkX = (int) Math.floor((posX + motionX * velocity) / 16);
-		int nextChunkZ = (int) Math.floor((posZ + motionZ * velocity) / 16);
+		int nextChunkX = (int) ((posX + motionX * velocity) / 16);
+		int nextChunkZ = (int) ((posZ + motionZ * velocity) / 16);
 
 		loadNeighboringChunks(nextChunkX, nextChunkZ);
 		loadNeighboringChunks((int) Math.floor(posX / 16), (int) Math.floor(posZ / 16));
@@ -473,4 +477,3 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 
 }
-
