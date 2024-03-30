@@ -287,15 +287,6 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		positionvectorCruise = Math.sqrt(((this.posX - startX)*(this.posX - startX)) + ((this.posY - startY)*(this.posY - startY)) + ((this.posZ - startZ)*(this.posZ - startZ)));
 		afterHighCounter++;
 		//2. Geschwindigkeiten
-		/*
-		if(velocity < 1)
-			velocity = 1;
-		if(this.afterHighCounter > 40)
-			velocity = 3;
-		else if(this.afterHighCounter > 20)
-			velocity = 2;
-		if(this.positionvectorCruise > this.startsonicspeed && isSubsonic && !this.worldObj.isRemote)
-			velocity = 3;*/
 		velocity = 2;
 
 
