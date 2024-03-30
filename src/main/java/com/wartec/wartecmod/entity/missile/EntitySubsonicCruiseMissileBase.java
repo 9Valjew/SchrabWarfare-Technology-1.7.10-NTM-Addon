@@ -305,10 +305,14 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 			//this.posZ += this.motionZ;
 
 			//this.setLocationAndAngles(posX + (this.motionX*1.0033) * velocity, posY + this.motionY * velocity, posZ + (this.motionZ*0.9952) * velocity, 0, 0);
-			double hitDistance = (totalDistance/4)/1.34;
-			if(getDistanceToTarget() < hitDistance){
+			if(getDistanceToTarget() < 20){
 
-				this.setLocationAndAngles(posX + this.motionX * velocity, posY + this.motionY * velocity*2.75, posZ + this.motionZ * velocity, 0, 0);
+				motionX = 0;
+				motionZ = 0;
+				rotation();
+				this.setLocationAndAngles(targetX,posY + this.motionY * velocity*6.25,targetZ, 0, 0);
+				rotation();
+
 			}
 			else{this.setLocationAndAngles(posX + this.motionX * velocity, posY, posZ + this.motionZ * velocity, 0, 0);}
 			rotation();
@@ -476,6 +480,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		super.setDead();
 		this.clearChunkLoader();
 	}
+
+
 
 
 }
