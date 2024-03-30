@@ -285,6 +285,10 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 			return;
 		}
 		//1.Position
+		if(getDistanceToTarget() == 0 && posY == targetY) {
+			onImpact();
+			return;
+		}
 
 		positionvectorCruise = Math.sqrt(((this.posX - startX)*(this.posX - startX)) + ((this.posY - startY)*(this.posY - startY)) + ((this.posZ - startZ)*(this.posZ - startZ)));
 		afterHighCounter++;
@@ -304,15 +308,28 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 			//this.posY += this.motionY;
 			//this.posZ += this.motionZ;
 
+
 			//this.setLocationAndAngles(posX + (this.motionX*1.0033) * velocity, posY + this.motionY * velocity, posZ + (this.motionZ*0.9952) * velocity, 0, 0);
-			if(getDistanceToTarget() < 20){
+			double hitDistance = totalDistance * 0.4; // 40% of the total distance
+			if(getDistanceToTarget() <= hitDistance){
+				// Adjust the vertical speed (motionY) to start the descent
+				motionY -= decelY * velocity;
 
-				motionX = 0;
-				motionZ = 0;
-				rotation();
-				this.setLocationAndAngles(targetX,posY + this.motionY * velocity*6.25,targetZ, 0, 0);
-				rotation();
+				// Adjust the horizontal speeds (motionX and motionZ) to guide the missile towards the target
+				Vec3 vector = Vec3.createVectorHelper(targetX - posX, targetY - posY , targetZ - posZ);
+				vector = vector.normalize();
+				motionX += vector.xCoord * accelXZ * velocity;
+				motionZ += vector.zCoord * accelXZ * velocity;
 
+				this.setLocationAndAngles(posX + this.motionX * velocity, posY + this.motionY * velocity, posZ + this.motionZ * velocity, 0, 0);
+
+				if(getDistanceToTarget() < 20) {
+					motionX = 0;
+					motionZ = 0;
+					rotation();
+					this.setLocationAndAngles(targetX, posY + this.motionY * velocity * 6.25, targetZ, 0, 0);
+					rotation();
+				}
 			}
 			else{this.setLocationAndAngles(posX + this.motionX * velocity, posY, posZ + this.motionZ * velocity, 0, 0);}
 			rotation();
@@ -363,9 +380,9 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 				if(!this.worldObj.isRemote)
 				{
+					onImpact();
 					String message = String.format("%s has landed at coordinates (%d, %d, %d)",uuid, (int) this.posX, (int) this.posY, (int) this.posZ);
 					MinecraftServer.getServer().getConfigurationManager().sendChatMsg(new ChatComponentText(message));
-					onImpact();
 				}
 				this.setDead();
 				return;
