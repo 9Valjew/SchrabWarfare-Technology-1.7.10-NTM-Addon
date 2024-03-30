@@ -51,7 +51,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	public int health = 10;
 	protected TileEntityVlsExhaust exhaust = null;
 	boolean isFirst = true;
-	UUID uuid = UUID.randomUUID();
+	UUID uuidF = UUID.randomUUID();
+	String uuid = uuidF.toString();
 
 
 	public EntitySubsonicCruiseMissileBase(World p_i1582_1_) {
@@ -160,6 +161,10 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		startY = nbt.getInteger("sY");
 		startZ = nbt.getInteger("sZ");
 		velocity = nbt.getInteger("veloc");
+		isFirst = nbt.getBoolean("isFirst");
+		uuid = nbt.getString("uuid");
+
+
 	}
 
 	@Override
@@ -179,6 +184,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		nbt.setInteger("sY", startY);
 		nbt.setInteger("sZ", startZ);
 		nbt.setInteger("veloc", velocity);
+		nbt.setBoolean("isFirst", isFirst);
+		nbt.setString("uuid", uuid);
 	}
 
 	protected void rotation() {
@@ -250,7 +257,6 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 	@Override
 	public void onUpdate() {
-		loadNeighboringChunks((int) Math.floor(posX / 16), (int) Math.floor(posZ / 16));
 		if(isFirst)
 		{
 			String message = String.format("%s has launched from the coordinates (%d, %d, %d)",uuid, (int) this.posX, (int) this.posY, (int) this.posZ);
@@ -312,6 +318,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 			Vec3 vector = Vec3.createVectorHelper(targetX - posX, targetY - posY , targetZ - posZ);
 			vector = vector.normalize();
+			this.spawnExhaust(posX - vector.xCoord * i, (posY+1) - vector.yCoord * i, posZ - vector.zCoord * i);
 			vector.xCoord *= accelXZ * velocity*-1;
 			vector.zCoord *= accelXZ * velocity*-1;
 			rotation();
@@ -358,6 +365,11 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 			}
 
 		}
+		int nextChunkX = (int) Math.floor((posX + motionX * velocity) / 16);
+		int nextChunkZ = (int) Math.floor((posZ + motionZ * velocity) / 16);
+
+		loadNeighboringChunks(nextChunkX, nextChunkZ);
+		loadNeighboringChunks((int) Math.floor(posX / 16), (int) Math.floor(posZ / 16));
 	}
 
 	public void BombletSplit() {
@@ -392,7 +404,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	@SideOnly(Side.CLIENT)
 	public boolean isInRangeToRenderDist(double distance)
 	{
-		return distance < 500000;
+		return distance < 800000;
 	}
 
 	public abstract void onImpact();
@@ -438,12 +450,11 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 	public void loadNeighboringChunks(int newChunkX, int newChunkZ) {
 		if(!worldObj.isRemote && loaderTicket != null) {
+			// Clear the previously loaded chunks
 			clearChunkLoader();
-			loadedChunks.clear();
-			loadedChunks.add(new ChunkCoordIntPair(newChunkX, newChunkZ));
-			for(ChunkCoordIntPair chunk : loadedChunks) {
-				ForgeChunkManager.forceChunk(loaderTicket, chunk);
-			}
+
+			// Load the new chunk
+			ForgeChunkManager.forceChunk(loaderTicket, new ChunkCoordIntPair(newChunkX, newChunkZ));
 		}
 	}
 
