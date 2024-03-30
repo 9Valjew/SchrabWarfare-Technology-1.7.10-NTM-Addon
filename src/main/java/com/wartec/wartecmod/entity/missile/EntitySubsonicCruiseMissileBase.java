@@ -43,6 +43,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	double startsonicspeed;
 	double Range;
 	double decelY;
+	double totalDistance;
 	double accelXZ;
 	boolean isSubsonic = false;
 	boolean isCluster = false;
@@ -112,7 +113,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		startY = (int) y;
 		startZ = (int) z;
 		targetX = a;
-		targetY = b;
+		targetY = 65; //should always be sea level since target designators dont support height yet
 		targetZ = c;
 		this.exhaust = exh;
 
@@ -259,17 +260,18 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	public void onUpdate() {
 		if(isFirst)
 		{
-			String message = String.format("%s has launched from the coordinates (%d, %d, %d)",uuid, (int) this.posX, (int) this.posY, (int) this.posZ);
+			totalDistance = getDistanceToTarget();
+			String message = String.format("%s has been launched from coordinates (%d, %d, %d) to coordinates (%d, %d, %d) with a total distance of %f",uuid, startX, startY, startZ, targetX, targetY, targetZ, totalDistance);
 			MinecraftServer.getServer().getConfigurationManager().sendChatMsg(new ChatComponentText(message));
 			isFirst = false;
 		}
 		if(!this.isHigh)
 		{
-			this.setLocationAndAngles(posX, posY + 0.5, posZ, 0, 0);
+			this.setLocationAndAngles(posX, posY + 2, posZ, 0, 0);
 			this.spawnExhaust(posX,posY-3,posZ);
 
 			rotation();
-			if(this.posY > 150)
+			if(this.posY > 250)
 			{
 				isHigh = true;
 				startX = (int) posX;
@@ -303,8 +305,11 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 			//this.posZ += this.motionZ;
 
 			//this.setLocationAndAngles(posX + (this.motionX*1.0033) * velocity, posY + this.motionY * velocity, posZ + (this.motionZ*0.9952) * velocity, 0, 0);
+			double hitDistance = (totalDistance/4)/1.34;
+			if(getDistanceToTarget() < hitDistance){
 
-			if(getDistanceToTarget() < 250){this.setLocationAndAngles(posX + this.motionX * velocity, posY + this.motionY * velocity*3, posZ + this.motionZ * velocity, 0, 0);}
+				this.setLocationAndAngles(posX + this.motionX * velocity, posY + this.motionY * velocity*2.75, posZ + this.motionZ * velocity, 0, 0);
+			}
 			else{this.setLocationAndAngles(posX + this.motionX * velocity, posY, posZ + this.motionZ * velocity, 0, 0);}
 			rotation();
 
@@ -313,6 +318,13 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 
 			Vec3 vector = Vec3.createVectorHelper(targetX - posX, targetY - posY , targetZ - posZ);
 			vector = vector.normalize();
+
+			// Adjust motionX and motionZ based on the vector to the target
+			motionX += vector.xCoord * accelXZ * velocity;
+			motionZ += vector.zCoord * accelXZ * velocity;
+
+			// Adjust motionY based on the vector to the target
+			motionY += vector.yCoord * accelXZ * velocity;
 			this.spawnExhaust(posX - vector.xCoord * i, (posY+1) - vector.yCoord * i, posZ - vector.zCoord * i);
 			vector.xCoord *= accelXZ * velocity*-1;
 			vector.zCoord *= accelXZ * velocity*-1;
@@ -438,9 +450,8 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	}
 	public double getDistanceToTarget() {
 		double dx = targetX - posX;
-		double dy = targetY - posY;
 		double dz = targetZ - posZ;
-		return Math.sqrt(dx * dx + dy * dy + dz * dz);
+		return Math.sqrt(dx * dx + dz * dz);
 	}
 
 	public void loadNeighboringChunks(int newChunkX, int newChunkZ) {
