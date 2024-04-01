@@ -192,25 +192,26 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 	protected void rotation() {
 		float f2 = MathHelper.sqrt_double(this.motionX * this.motionX + this.motionZ * this.motionZ);
 		this.rotationYaw = (float)(Math.atan2(this.motionX, this.motionZ) * 180.0D / Math.PI);
+		float rotationStep = 20.0F; // Define the step size for each rotation
 
-		for (this.rotationPitch = (float)(Math.atan2(this.motionY, f2) * 180.0D / Math.PI) -90; this.rotationPitch - this.prevRotationPitch < -180.0F; this.prevRotationPitch -= 360.0F)
+		for (this.rotationPitch = (float)(Math.atan2(this.motionY, f2) * 180.0D / Math.PI) -90; Math.abs(this.rotationPitch - this.prevRotationPitch) > rotationStep; this.prevRotationPitch += Math.signum(this.rotationPitch - this.prevRotationPitch) * rotationStep)
 		{
 			;
 		}
 
-		while (this.rotationPitch - this.prevRotationPitch >= 180.0F)
+		while (Math.abs(this.rotationPitch - this.prevRotationPitch) >= rotationStep)
 		{
-			this.prevRotationPitch += 360.0F;
+			this.prevRotationPitch += Math.signum(this.rotationPitch - this.prevRotationPitch) * rotationStep;
 		}
 
-		while (this.rotationYaw - this.prevRotationYaw < -180.0F)
+		while (Math.abs(this.rotationYaw - this.prevRotationYaw) > rotationStep)
 		{
-			this.prevRotationYaw -= 360.0F;
+			this.prevRotationYaw += Math.signum(this.rotationYaw - this.prevRotationYaw) * rotationStep;
 		}
 
-		while (this.rotationYaw - this.prevRotationYaw >= 180.0F)
+		while (Math.abs(this.rotationYaw - this.prevRotationYaw) >= rotationStep)
 		{
-			this.prevRotationYaw += 360.0F;
+			this.prevRotationYaw += Math.signum(this.rotationYaw - this.prevRotationYaw) * rotationStep;
 		}
 	}
 	private void spawnExhaust(double x, double y, double z) {
@@ -293,7 +294,7 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 		positionvectorCruise = Math.sqrt(((this.posX - startX)*(this.posX - startX)) + ((this.posY - startY)*(this.posY - startY)) + ((this.posZ - startZ)*(this.posZ - startZ)));
 		afterHighCounter++;
 		//2. Geschwindigkeiten
-		velocity = 2;
+		velocity = 1;
 
 
 		this.dataWatcher.updateObject(8, Integer.valueOf(this.health));
@@ -327,12 +328,12 @@ public abstract class EntitySubsonicCruiseMissileBase extends Entity implements 
 					motionX = 0;
 					motionZ = 0;
 					rotation();
-					this.setLocationAndAngles(targetX, posY + this.motionY * velocity * 6.25, targetZ, 0, 0);
+					this.setLocationAndAngles(targetX, posY + this.motionY * velocity * 3, targetZ, 0, 0);
 					rotation();
 				}
 			}
-			else{this.setLocationAndAngles(posX + this.motionX * velocity, posY, posZ + this.motionZ * velocity, 0, 0);}
-			rotation();
+			else{this.setLocationAndAngles(posX + this.motionX * velocity*1.34, posY, posZ + this.motionZ * velocity*1.34,, 0, 0);}
+			//rotation();
 
 
 			this.motionY -= decelY * velocity;
